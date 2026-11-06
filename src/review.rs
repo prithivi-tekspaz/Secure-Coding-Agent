@@ -57,17 +57,20 @@ pub fn split_code(code: &str, max_lines: usize) -> Vec<CodePiece> {
         .collect()
 }
 
-/// Builds the prompt for one code piece. Line numbers are real file line numbers.
+/// Builds the prompt for one code piece. The code has no line-number prefixes,
+/// so the model cannot copy them into its fix. It gets the first line number instead.
 pub fn build_prompt(language: &str, file: &str, piece: &CodePiece) -> String {
-    let numbered: String = piece
-        .text
-        .lines()
-        .enumerate()
-        .map(|(i, l)| format!("{:>4}: {l}\n", piece.start + i))
-        .collect();
     format!(
-        "Review this {language} code for security problems.\nFile: {file}\nLines: {}-{}\n\n```\n{numbered}```\n\nAnswer in the required sections.",
-        piece.start, piece.end
+        "Review this {language} code for security problems.
+File: {file}
+The first line of the code below is line {}. The last line is line {}.
+
+```
+{}
+```
+
+Answer in the required sections.",
+        piece.start, piece.end, piece.text
     )
 }
 
@@ -152,13 +155,24 @@ mod tests {
 
     #[test]
     fn prompt_has_language_file_and_real_line_numbers() {
-        let piece = CodePiece { start: 61, end: 62, text: "x = 1\ny = 2".into() };
+        let piece = CodePiece {
+            start: 61,
+            end: 62,
+            text: "x = 1
+y = 2"
+                .into(),
+        };
         let s = build_prompt("Python", "a.py", &piece);
         assert!(s.contains("Python"));
         assert!(s.contains("File: a.py"));
-        assert!(s.contains("Lines: 61-62"));
-        assert!(s.contains("  61: x = 1"));
-        assert!(s.contains("  62: y = 2"));
+        assert!(s.contains("line 61"));
+        assert!(s.contains("line 62"));
+        assert!(s.contains(
+            "```
+x = 1
+y = 2
+```"
+        ));
     }
 
     #[test]

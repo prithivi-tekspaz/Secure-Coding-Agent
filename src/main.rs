@@ -7,7 +7,9 @@
 mod review;
 
 use anyhow::{Context, Result};
-use review::{build_prompt, build_question_prompt, detect_language, review_slug, split_code, MAX_PIECE_LINES};
+use review::{
+    build_prompt, build_question_prompt, detect_language, review_slug, split_code, MAX_PIECE_LINES,
+};
 use rig::prelude::*;
 use rig::{
     embeddings::EmbeddingsBuilder, loaders::PdfFileLoader,
@@ -30,6 +32,9 @@ Always answer in these Markdown sections, in this order: \
 Use the retrieved context first. Mark each line that comes only from your own knowledge with `(model knowledge)`. \
 If the code looks safe, say so and do not invent issues. \
 Never produce working exploit payloads. \
+These patterns are safe, do not flag them: parameterized queries, os.urandom, the secrets module, scrypt, Argon2, bcrypt, canonical path checks inside a base directory, textContent, and verify=True. \
+Only report a problem if you can quote the exact unsafe line, and that line must really be unsafe. A line that already uses a safe pattern is not a finding. \
+If the code has no problem, write only `No issues found` under ### Findings and skip the other sections. \
 Never invent CVE IDs, versions or commands. \
 Write `needs review` when you are unsure.";
 
@@ -166,7 +171,7 @@ async fn main() -> Result<()> {
     let agent = AgentBuilder::new(client.native_completion(&completion_model_name))
         .preamble(PREAMBLE)
         .dynamic_context(TOP_N, index)
-        .temperature(0.2)
+        .temperature(0.1)
         .additional_params(rig::serde_json::json!({"options": {"num_ctx": 8192}}))
         .build();
 

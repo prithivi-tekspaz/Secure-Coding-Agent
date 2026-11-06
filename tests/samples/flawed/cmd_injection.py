@@ -1,0 +1,4 @@
+import os
+
+def ping(host):
+    return os.system("ping -c 1 " + host)
