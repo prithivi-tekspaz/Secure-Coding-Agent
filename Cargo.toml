@@ -1,0 +1,10 @@
+[package]
+name = "secure-coding-support-rag"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rig = { version = "0.44", features = ["derive", "pdf"] }
+anyhow = "1"
+serde = { version = "1", features = ["derive"] }
+tokio = { version = "1", features = ["full"] }
